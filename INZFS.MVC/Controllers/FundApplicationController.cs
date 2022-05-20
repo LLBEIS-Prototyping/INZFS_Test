@@ -451,10 +451,9 @@ namespace INZFS.MVC.Controllers
             return _dynamicFormGenerator.PopulateViewModel(currentPage, currentModel);
         }
 
-
         public async Task<IActionResult> Submit()
         {
-            SetPageTitle("Submit application");
+           _dynamicFormGenerator.SetPageTitle("Submit application");
             var userId = _userManagerService.GetUserId();
             var content = _applicationGeneratorService.GetApplicationConent(userId).Result;
             if(content.ApplicationStatus != ApplicationStatus.InProgress)
@@ -490,7 +489,7 @@ namespace INZFS.MVC.Controllers
         [ServiceFilter(typeof(ApplicationRedirectionAttribute))]
         public async Task<IActionResult> Complete()
         {
-            SetPageTitle("Application completed");
+           _dynamicFormGenerator.SetPageTitle("Application completed");
             var userId = _userManagerService.GetUserId();
             var content = _applicationGeneratorService.GetApplicationConent(userId).Result;
             if (content.ApplicationStatus != ApplicationStatus.InProgress)
@@ -521,7 +520,7 @@ namespace INZFS.MVC.Controllers
         [ServiceFilter(typeof(ApplicationRedirectionAttribute))]
         public async Task<IActionResult> ApplicationEquality()
         {
-            SetPageTitle("Equality questions");
+           _dynamicFormGenerator.SetPageTitle("Equality questions");
             var model = new CommonModel
             {
                 ShowBackLink = true,
@@ -533,7 +532,7 @@ namespace INZFS.MVC.Controllers
 
         public async Task<IActionResult> ApplicationSent()
         {
-            SetPageTitle("Your application");
+           _dynamicFormGenerator.SetPageTitle("Your application");
             var userId = _userManagerService.GetUserId();
             var content = await _contentRepository.GetApplicationContent(userId);
             var status = content.ApplicationStatus == ApplicationStatus.InProgress ? ApplicationStatus.NotSubmitted : content.ApplicationStatus;
@@ -560,11 +559,6 @@ namespace INZFS.MVC.Controllers
             {
                 return RedirectToAction("ApplicationSent");
             }
-        }
-
-        private void SetPageTitle(string title)
-        {
-            ViewData["Title"] = $"{title}";
         }
 
         private FieldStatus GetFieldStatus(Page currentPage, BaseModel model)
