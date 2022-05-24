@@ -102,6 +102,35 @@ namespace INZFS.MVC.Services.FundApplication
             return currentModel;
         }
 
+        public Page GetCurrentPage(string pageName)
+        {
+            var currentPage = _applicationDefinition.Application.AllPages.FirstOrDefault(p => p.Name.ToLower().Equals(pageName));
+            return currentPage;
+        }
+        // _applicationDefinition.Application.AllPages.FindIndex(p => p.Name.ToLower().Equals(pageName));
+
+        public int GetPageIndex(string pageName)
+        {
+            var index = _applicationDefinition.Application.AllPages.FindIndex(p => p.Name.ToLower().Equals(pageName));
+            return index;
+        }
+
+        public Page GetNextPage(string pageName, int index)
+        {
+            var nextpage = _applicationDefinition.Application.AllPages.ElementAtOrDefault(index + 1);
+            return nextpage;
+        }
+        public MVC.Section GetCurrentSection(string pageName)
+        {
+            var currentSection = _applicationDefinition.Application.Sections.Where(s => s.Pages.Any(c => c.Name == pageName.ToLower())).FirstOrDefault();
+            return currentSection;
+        }
+
+        public IEnumerable<Page> GetDependentPages(string pageName)
+        {
+            var depdentPages = _applicationDefinition.Application.AllPages.Where(page => page.DependsOn?.FieldName == pageName);
+            return depdentPages;
+        }
         public ViewResult PopulateViewModel(Page currentPage, BaseModel currentModel, Field field = null)
         {
             SetPageTitle(currentPage.SectionTitle);

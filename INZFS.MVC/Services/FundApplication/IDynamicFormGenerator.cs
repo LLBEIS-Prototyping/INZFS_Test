@@ -14,5 +14,14 @@ namespace INZFS.MVC.Services.FundApplication
         public ViewResult PopulateViewModel(Page currentPage, BaseModel currentModel, Field field = null);
         public ViewResult GetViewModel(Page currentPage, Field field);
         public void SetPageTitle(string title);
+        public Page GetCurrentPage(string pageName);
+
+        public int GetPageIndex(string pageName);
+
+        public MVC.Section GetCurrentSection(string pageName);
+
+        public Page GetNextPage(string pageName, int index);
+
+        public IEnumerable<Page> GetDependentPages(string pageName);
     }
 }

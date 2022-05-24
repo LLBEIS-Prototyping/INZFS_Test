@@ -40,11 +40,8 @@ namespace INZFS.MVC.Controllers
         private readonly IMediaFileStore _mediaFileStore;
         private readonly YesSql.ISession _session;
         private readonly IContentRepository _contentRepository;
-        private readonly ApplicationDefinition _applicationDefinition;
         private readonly IApplicationEmailService _applicationEmailService;
         private readonly ApplicationOption _applicationOption;
-        private readonly IZipService _zipService;
-        private readonly IWebHostEnvironment _env;
         private readonly IApplicationGeneratorService _applicationGeneratorService;
         private readonly IUserManagerService _userManagerService;
         private readonly IAzureBlobService _azureBlobService;
@@ -54,14 +51,10 @@ namespace INZFS.MVC.Controllers
 
         public FundApplicationController(
             IMediaFileStore mediaFileStore, 
-            IHtmlLocalizer<FundApplicationController> htmlLocalizer,
             YesSql.ISession session,
             IContentRepository contentRepository, IFileUploadService fileUploadService, 
-            ApplicationDefinition applicationDefinition, 
             IApplicationEmailService applicationEmailService,
             IOptions<ApplicationOption> applicationOption,
-            IZipService zipService,
-            IWebHostEnvironment env,
             IApplicationGeneratorService applicationGeneratorService,
             IUserManagerService userManagerService,
             IAzureBlobService azureBlobService,
@@ -71,11 +64,8 @@ namespace INZFS.MVC.Controllers
             _session = session;
             _contentRepository = contentRepository;
             _fileUploadService = fileUploadService;
-            _applicationDefinition = applicationDefinition;
             _applicationEmailService = applicationEmailService;
             _applicationOption = applicationOption.Value;
-            _zipService = zipService;
-            _env = env;
             _applicationGeneratorService = applicationGeneratorService;
             _userManagerService = userManagerService;
             _azureBlobService = azureBlobService;
@@ -92,7 +82,7 @@ namespace INZFS.MVC.Controllers
         public async Task<IActionResult> Section(string pagename, string id)
         {
             var temp = TempData;
-            return await _applicationGeneratorService.GetSection(pagename, id, TempData);
+            return await _applicationGeneratorService.GetSection(pagename, id, temp);
         }
 
        
@@ -113,7 +103,7 @@ namespace INZFS.MVC.Controllers
         [ServiceFilter(typeof(ApplicationRedirectionAttribute))]
         public async Task<IActionResult> Save([Bind(Prefix = "submit.Publish")] string submitAction, string returnUrl, string pageName, IFormFile? file, BaseModel model)
         {
-            var currentPage = _applicationDefinition.Application.AllPages.FirstOrDefault(p => p.Name.ToLower().Equals(pageName));
+            var currentPage = _dynamicFormGenerator.GetCurrentPage(pageName);
             if (currentPage.FieldType == FieldType.gdsFileUpload)
             {
                 if (file != null || submitAction == "UploadFile")
@@ -350,7 +340,7 @@ namespace INZFS.MVC.Controllers
                 //Delete the data from dependants
                 var datafieldForCurrentPage = contentToSave.Fields.FirstOrDefault(f => f.Name == currentPage.FieldName);
                 //Get all pages that depends on the current field and its value
-                var dependantPages = _applicationDefinition.Application.AllPages.Where(page => page.DependsOn?.FieldName == currentPage.FieldName);
+                var dependantPages = _dynamicFormGenerator.GetDependentPages(currentPage.FieldName);
 
                 foreach (var dependantPage in dependantPages)
                 {
@@ -391,14 +381,14 @@ namespace INZFS.MVC.Controllers
                 }
 
                 //TODO - replace all the references to AllPages with section.Pages
-                var index = _applicationDefinition.Application.AllPages.FindIndex(p => p.Name.ToLower().Equals(pageName));
-                var currentSection = _applicationDefinition.Application.Sections.Where(s => s.Pages.Any(c => c.Name == pageName.ToLower())).FirstOrDefault();
+                var index = _dynamicFormGenerator.GetPageIndex(pageName);
+                var currentSection = _dynamicFormGenerator.GetCurrentSection(pageName);
 
                 //Dependant pages
                 Page nextPage = null;
                 while(true)
                 {
-                    nextPage = _applicationDefinition.Application.AllPages.ElementAtOrDefault(index + 1);
+                    nextPage = _dynamicFormGenerator.GetNextPage(pageName, index);
                     var dependsOn = nextPage?.DependsOn;
                     if (dependsOn == null)
                     {
@@ -440,7 +430,7 @@ namespace INZFS.MVC.Controllers
             else
             {
                 await _session.CancelAsync();
-                currentPage = _applicationDefinition.Application.AllPages.FirstOrDefault(p => p.Name.ToLower().Equals(pageName));
+
                 return _dynamicFormGenerator.PopulateViewModel(currentPage, model);
             }
         }

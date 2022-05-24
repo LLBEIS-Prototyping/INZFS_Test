@@ -35,6 +35,7 @@ namespace INZFS.MVC.Models.DynamicForm
             {
                 DateTime userInputDate;
                 string dateToValidate = $"{Day}/{Month}/{Year}";
+
                 if (!Day.HasValue && Month.HasValue && Year.HasValue)
                 {
                     yield return new ValidationResult($"{CurrentPage.FriendlyFieldName} must include a day", new[] { nameof(DateUtc) });
