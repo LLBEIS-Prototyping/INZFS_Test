@@ -89,36 +89,23 @@ namespace INZFS.MVC.Controllers
         [ServiceFilter(typeof(ApplicationRedirectionAttribute))]
         public async Task<IActionResult> Section(string pagename, string id)
         {
-            if(string.IsNullOrEmpty(pagename))
+            if (string.IsNullOrEmpty(pagename))
             {
                 return NotFound();
             }
-            pagename = pagename.ToLower().Trim();
+            pagename = FormatPageName(pagename);
+            ApplicationContent content = await GetApplicationContent();
 
+            AddApplicationIDToUserClaims(content);
 
-            var userId = GetUserId();
-            var content = await _contentRepository.GetApplicationContent(userId);
-            if(content == null)
-            {
-                content = await _contentRepository.CreateApplicationContent(userId);
-            }
-            
-            if (string.IsNullOrEmpty(User.Identity.ApplicationNumber()))
-            {
-                var claimIdentity = (ClaimsIdentity)User.Identity;
-                claimIdentity.AddClaim(new System.Security.Claims.Claim("ApplicationNumber", content.ApplicationNumber));
-            }
-
-            if(RedirectToApplicationSubmittedPage(pagename, content))
+            if (RedirectToApplicationSubmittedPage(pagename, content))
             {
                 return RedirectToAction("ApplicationSent");
             }
-
-            // Page
-            var currentPage = _applicationDefinition.Application.AllPages.FirstOrDefault(p => p.Name.ToLower().Equals(pagename));
-            if(currentPage != null)
+            Page currentPage = GetCurrentPage(pagename);
+            if (currentPage != null)
             {
-                var field = content?.Fields?.FirstOrDefault(f => f.Name.Equals(currentPage.FieldName));
+                Field field = GetFieldName(content, currentPage);
                 return GetViewModel(currentPage, field);
             }
 
@@ -130,9 +117,7 @@ namespace INZFS.MVC.Controllers
                 SetPageTitle("Application Overview");
                 return View("ApplicationOverview", applicationOverviewContentModel);
             }
-
-            // Section
-            var currentSection = _applicationDefinition.Application.Sections.FirstOrDefault(section => section.Url.Equals(pagename));
+            Section currentSection = GetCurrentSection(pagename);
             if (currentSection != null)
             {
                 var sectionContentModel = GetSectionContent(content, currentSection);
@@ -143,6 +128,58 @@ namespace INZFS.MVC.Controllers
 
             return NotFound();
 
+        }
+
+        private async Task<ApplicationContent> GetApplicationContent()
+        {
+            var userId = GetUserId();
+            ApplicationContent content = await ReturnApplicationContent(userId);
+            return content;
+        }
+
+        private Section GetCurrentSection(string pagename)
+        {
+
+            // Section
+            return _applicationDefinition.Application.Sections.FirstOrDefault(section => section.Url.Equals(pagename));
+        }
+
+        private static Field GetFieldName(ApplicationContent content, Page currentPage)
+        {
+            return content?.Fields?.FirstOrDefault(f => f.Name.Equals(currentPage.FieldName));
+        }
+
+        private Page GetCurrentPage(string pagename)
+        {
+
+            // Page
+            return _applicationDefinition.Application.AllPages.FirstOrDefault(p => p.Name.ToLower().Equals(pagename));
+        }
+
+        private static string FormatPageName(string pagename)
+        {
+            pagename = pagename.ToLower().Trim();
+            return pagename;
+        }
+
+        private void AddApplicationIDToUserClaims(ApplicationContent content)
+        {
+            if (string.IsNullOrEmpty(User.Identity.ApplicationNumber()))
+            {
+                var claimIdentity = (ClaimsIdentity)User.Identity;
+                claimIdentity.AddClaim(new System.Security.Claims.Claim("ApplicationNumber", content.ApplicationNumber));
+            }
+        }
+
+        private async Task<ApplicationContent> ReturnApplicationContent(string userId)
+        {
+            var content = await _contentRepository.GetApplicationContent(userId);
+            if (content == null)
+            {
+                content = await _contentRepository.CreateApplicationContent(userId);
+            }
+
+            return content;
         }
 
         private bool RedirectToApplicationSubmittedPage(string pageName, ApplicationContent content)
